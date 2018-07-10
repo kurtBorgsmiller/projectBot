@@ -120,6 +120,24 @@ bool makeMoveHunter(int i)
 				return true;
 			}
 		}
+
+		//If no enemy is close, move randomly & check for obstructions
+		int newX = child.x + dispX[walkDir[i]];
+		int newY = child.y + dispY[walkDir[i]];
+
+		if (ground[newX][newY] == GROUND_TREE ||
+			ground[newX][newY] == GROUND_CHILD ||
+			height[newX][newY] >= OBSTACLE_HEIGHT) 
+		{
+			walkDir[i] = (walkDir[i] + 1) % 4;
+			return false;
+		}
+
+		cout << "run " << newX << " " << newY << endl;
+		ground[child.x][child.y] = GROUND_TAKEN;
+		ground[newX][newY] = GROUND_CHILD;
+
+		return true;
 	}
 }
 
