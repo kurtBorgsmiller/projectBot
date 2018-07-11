@@ -1,19 +1,70 @@
 /* Kurt Borgsmiller
 Southern Illinois University
- 5 June 2018
- ICYPC Challenge Bot */
+5 June 2018
+ICYPC Challenge Bot */
 
-#include "const.h"
 #include <iostream>
 #include <vector>
 #include <string>
 
 using namespace std;
 
+// Size of playing field 
+const int SIZE = 31;
+
+// Players per team 
+const int CCOUNT = 4;
+
+// Constants for ground objects 
+const int GROUND_EMPTY = 0;
+const int GROUND_TREE = 1;
+const int GROUND_S = 2;
+const int GROUND_M = 3;
+const int GROUND_MS = 4;
+const int GROUND_L = 5;
+const int GROUND_LM = 6;
+const int GROUND_LS = 7;
+const int GROUND_SMR = 8;
+const int GROUND_SMB = 9;
+const int GROUND_CHILD = 10;
+const int GROUND_TAKEN = 11;
+
+// Constants for player inventory 
+const int HOLD_EMPTY = 0;
+const int HOLD_P1 = 1;
+const int HOLD_P2 = 2;
+const int HOLD_P3 = 3;
+const int HOLD_S1 = 4;
+const int HOLD_S2 = 5;
+const int HOLD_S3 = 6;
+const int HOLD_M = 7;
+const int HOLD_L = 8;
+
+// Constants for Red team (self) and Blue team (Opponent) 
+const int RED = 0;
+const int BLUE = 1;
+
+// Height of Child's position 
+const int STANDING_HEIGHT = 9;
+const int CROUCHING_HEIGHT = 6;
+
+// Max Euclidean distance for child's throw 
+const int THROW_LIMIT = 24;
+
+// Constants for max height of a space 
+const int MAX_PILE = 9;
+
+// Constant for a snow pile too high to move through
+const int OBSTACLE_HEIGHT = 6;
+
+const int FORT_SIZE = 6;
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 struct Child
 {
 	int x, y; // Map positioning
-	bool position; // true if standing, false if crouched
+	bool position = 0; // true if standing, false if crouched
 	int color; // Team color
 	int holding; // What the child is holding	
 	int dazed; // Number of turns child is stunned for
@@ -37,7 +88,12 @@ vector <vector<int>> height(SIZE, vector<int>(SIZE));
 vector <vector<int>> ground(SIZE, vector<int>(SIZE));
 
 // Update for each child's action
-vector< Child > cList( CCOUNT * 2);
+vector< Child > cList(CCOUNT * 2);
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 
 
@@ -54,7 +110,7 @@ Daze check) If child is dazed, must remain idle
 bool makeMoveHunter(int i)
 {
 	Child &child = cList[i];
-	
+
 	if (child.dazed > 0) // Daze Check
 	{
 		cout << "idle" << endl;
@@ -127,19 +183,31 @@ bool makeMoveHunter(int i)
 
 		if (ground[newX][newY] == GROUND_TREE ||
 			ground[newX][newY] == GROUND_CHILD ||
-			height[newX][newY] >= OBSTACLE_HEIGHT) 
+			height[newX][newY] >= OBSTACLE_HEIGHT)
 		{
 			walkDir[i] = (walkDir[i] + 1) % 4;
 			return false;
 		}
 
-		cout << "run " << newX << " " << newY << endl;
+		if (child.position)
+		{
+			cout << "run " << newX << " " << newY << endl;
+		}
+		else
+		{
+			cout << "crawl " << newX << " " << newY << endl;
+		}
 		ground[child.x][child.y] = GROUND_TAKEN;
 		ground[newX][newY] = GROUND_CHILD;
 
 		return true;
 	}
 }
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 
 
 /*
@@ -193,7 +261,7 @@ bool makeMoveBuilder(int i)
 		}
 	}
 
-	if (child.holding == HOLD_S1|| HOLD_S2 || HOLD_S3)
+	if (child.holding == HOLD_S1 || HOLD_S2 || HOLD_S3)
 	{
 		int dx = -1, dy = -1;
 		for (int ox = child.x - 1; ox <= child.x + 3; ox++)
@@ -205,8 +273,7 @@ bool makeMoveBuilder(int i)
 					snowmanCheck = 1;
 				}
 
-				if (ground[ox][oy] == GROUND_M && snowmanCheck != 1 && height[ox][oy] < OBSTACLE_HEIGHT 
-					&& ground[ox][oy] != GROUND_TREE)
+				if ((ground[ox][oy] == GROUND_M) && (snowmanCheck != 1) && (height[ox][oy] < OBSTACLE_HEIGHT))
 				{
 					dx = ox;
 					dy = oy;
@@ -214,9 +281,6 @@ bool makeMoveBuilder(int i)
 					cout << "drop " << dx << " " << dy << endl;
 					return true;
 				}
-
-
-				
 			}
 		}
 
@@ -225,8 +289,18 @@ bool makeMoveBuilder(int i)
 		{
 			int newX = child.x + dispX[walkDir[i]];
 			int newY = child.y + dispY[walkDir[i]];
-			
-			cout << "run " << newX << " " << newY << endl;
+
+			if (child.position)
+			{
+				cout << "run " << newX << " " << newY << endl;
+			}
+			else
+			{
+				cout << "crawl " << newX << " " << newY << endl;
+			}
+			ground[child.x][child.y] = GROUND_TAKEN;
+			ground[newX][newY] = GROUND_CHILD;
+			return true;
 		}
 		else
 		{
@@ -291,7 +365,17 @@ bool makeMoveBuilder(int i)
 			int newX = child.x + dispX[walkDir[i]];
 			int newY = child.y + dispY[walkDir[i]];
 
-			cout << "run " << newX << " " << newY << endl;
+			if (child.position)
+			{
+				cout << "run " << newX << " " << newY << endl;
+			}
+			else
+			{
+				cout << "crawl " << newX << " " << newY << endl;
+			}
+			ground[child.x][child.y] = GROUND_TAKEN;
+			ground[newX][newY] = GROUND_CHILD;
+			return true;
 		}
 		else
 		{
@@ -353,7 +437,17 @@ bool makeMoveBuilder(int i)
 			int newX = child.x + dispX[walkDir[i]];
 			int newY = child.y + dispY[walkDir[i]];
 
-			cout << "run " << newX << " " << newY << endl;
+			if (child.position)
+			{
+				cout << "run " << newX << " " << newY << endl;
+			}
+			else
+			{
+				cout << "crawl " << newX << " " << newY << endl;
+			}
+			ground[child.x][child.y] = GROUND_TAKEN;
+			ground[newX][newY] = GROUND_CHILD;
+			return true;
 		}
 		else
 		{
@@ -394,6 +488,10 @@ bool makeMoveBuilder(int i)
 		return true;
 	}
 }
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
